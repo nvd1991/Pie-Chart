@@ -31,11 +31,43 @@ class Surface extends JPanel implements ActionListener {
         timer.start();
     }
 
+    private void drawLine(Graphics2D g2d, float startDegree, float endDegree, int radius, int x, int y){
+        //Draw lines stick out of the pie
+        double lineCos = Math.cos((Math.toRadians(startDegree) + Math.toRadians(endDegree))/2);
+        double lineSin = Math.sin((Math.toRadians(startDegree) + Math.toRadians(endDegree))/2);
+        int lineOX = (int)(x + radius) + (int)Math.round((radius + 3) * lineCos);
+        int lineOY = (int)(y + radius) - (int)Math.round((radius + 3) * lineSin);
+        int lineDX = lineOX + (int)Math.round(20 * lineCos);
+        int lineDY = lineOY - (int)Math.round(20 * lineSin);
+        g2d.drawLine(lineOX, lineOY, lineDX, lineDY);
+
+        //Draw pie chart labels
+        float percentage = Math.abs(endDegree - startDegree) / 360 * 100;
+        String text = String.format("%.2f", percentage) + '%';
+        int stringDX = 0;
+        int stringDY = 0;
+        if(lineSin >= 0 && lineCos >=0){
+            stringDX = lineDX + (int)Math.round(5 * lineCos);
+            stringDY = lineDY - (int)Math.round(5 * lineSin) + (getFont().getSize()/2);
+        } else if (lineSin < 0 && lineCos >= 0){
+            stringDX = lineDX + (int)Math.round(5 * lineCos) - g2d.getFontMetrics().stringWidth(text)/2;
+            stringDY = lineDY - (int)Math.round(5 * lineSin) +  (getFont().getSize());
+        } else if (lineSin < 0 && lineCos < 0) {
+            stringDX = lineDX + (int)Math.round(5 * lineCos) - g2d.getFontMetrics().stringWidth(text);
+            stringDY = lineDY - (int)Math.round(5 * lineSin) + (getFont().getSize());
+        } else if (lineSin >= 0 && lineCos < 0) {
+            stringDX = lineDX + (int)Math.round(5 * lineCos) - g2d.getFontMetrics().stringWidth(text)/2;
+            stringDY = lineDY - (int)Math.round(5 * lineSin);
+        }
+        g2d.drawString(text, stringDX, stringDY);
+    }
+
     private void drawArray(Graphics2D g2d, float[][] pointListArray){
         //Some magic numbers
         int w = getWidth();
         int h = getHeight();
         int diameter = 200;
+        int radius = diameter/2;
         int x = (w - diameter)/2;
         int y = (h - diameter - 100)/2;
 
@@ -52,9 +84,13 @@ class Surface extends JPanel implements ActionListener {
             for(int i = 0; i < pointListLength - 1; i++){
                 g2d.setPaint(new Color(pointListArray[i][1], pointListArray[i][2], pointListArray[i][3], pointListArray[i][4]));
                 g2d.fillArc(x, y, diameter, diameter, (int)pointListArray[i][0], (int)(pointListArray[i+1][0] - pointListArray[i][0]));
+                drawLine(g2d, pointListArray[i][0], pointListArray[i+1][0], radius, x, y);
             }
             g2d.setPaint(new Color(pointListArray[pointListLength - 1][1], pointListArray[pointListLength - 1][2], pointListArray[pointListLength - 1][3], pointListArray[pointListLength - 1][4]));
             g2d.fillArc(x, y, diameter, diameter, (int)pointListArray[pointListLength - 1][0], currentAngle - (int)(pointListArray[pointListLength - 1][0] - pointListArray[0][0]));
+            if(currentAngle <= -360){
+                drawLine(g2d, pointListArray[pointListLength - 1][0], -270, radius, x, y);
+            }
         }
 
         //modify currentAngle and stop timer when the whole circle is finished
@@ -78,6 +114,12 @@ class Surface extends JPanel implements ActionListener {
         //Draw background
         g2d.setPaint(new Color((60f/255), (63f/255), (65f/255), 1f));
         g2d.fillRect(0,0, w, h);
+        String text = "A Pie Chart Demo";
+        g2d.setPaint(new Color((255f/255), (197f/255), (98f/255), 1f));
+        int oldFontSize = g2d.getFont().getSize();
+        g2d.setFont(g2d.getFont().deriveFont(20f));
+        g2d.drawString(text, (int)(w/2 - g2d.getFontMetrics().stringWidth(text)/2), 50);
+        g2d.setFont(g2d.getFont().deriveFont((float) oldFontSize));
 
         //Pass a subset of Endpoints to drawArray function based on the currentAngle
         int numberOfItemToPass = 0;
